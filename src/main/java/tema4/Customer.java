@@ -1,5 +1,3 @@
-package tema4;
-
 import java.util.ArrayList;
 
 public class Customer {
@@ -105,6 +103,10 @@ public class Customer {
 
     public ArrayList<Order> getOrders(){
         return this.orders;
+    }
+
+    public void resetOrders(){
+        this.orders = new ArrayList<>();
     }
 
     @Override

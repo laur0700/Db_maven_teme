@@ -1,50 +1,107 @@
-package tema4;
-
 import java.sql.*;
+import java.util.ArrayList;
+
+import static spark.Spark.*;
 
 public class Main {
     public static void main(String[] args) throws SQLException {
-        String connectionUrl = "jdbc:mysql://localhost:3306/db_name";
-        String username = "root";
-        String password = "root";
+        String connectionUrl = "jdbc:mysql://localhost:3306/db_school?serverTimezone=Europe/Bucharest";
+        String username = "test";
+        String password = "testpass";
 
         Connection connection = DriverManager.getConnection(connectionUrl, username, password);
 
         Customers customers = new Customers(connection);
 
-        //customers.insert("mariusica", "Voicu", "Marius", "0725291445", "Magheru 32", "Reghin", "022343", "Romania");
+        //get all customers
+        get("/customers/get-all", (req, res) -> {
+            customers.addAll();
+            String resMessage = "";
+            for(Customer c : customers.getCustomerList()){
+                resMessage = resMessage + c + "\n";
+            }
+            res.status(200);
+            return resMessage;
+        });
 
-        customers.update(2, "lauRAAAA10000", "Zelensky", "Laura", "0725441295", "Hapi 32", "Constanta", "029843", "Romania");
+        //get customer by id
+        get("/customers/:id", (req, res) -> customers.getById(Integer.parseInt(req.params(":id"))));
 
-        customers.addAll(); // addAll, face refresh la tot arraylist-ul, dupa un update/insert/delete este redundant pentru ca se apeleaza si in ele\
+        //insert new customer
+        put("/customers/add/:username/:lastname/:firstname/:phone/:address/:city/:postalcode/:country", (req, res) -> {
+            customers.insert(req.params(":username"),req.params(":lastname"),req.params(":firstname"),req.params(":phone"),
+                    req.params(":address"),req.params(":city"),req.params(":postalcode"),req.params(":country"));
 
-        for(Customer x : customers.getCustomerList()){
-            System.out.println(x);
-        }
-        System.out.println("\n");
+            res.status(201);
+            return "New customer has been added!";
+        });
 
-        // update este implementat doar cu toti parametrii
-        customers.update(2, "lauraX12", "Marinescu", "Laura", "0725441295", "Hapi 32", "Bucuresti", "021743", "Romania");
+        //update existing customer
+        put("/customers/update/:id/:username/:lastname/:firstname/:phone/:address/:city/:postalcode/:country", (req, res) -> {
+            customers.update(Integer.parseInt(req.params("id")),req.params(":username"),req.params(":lastname"),req.params(":firstname"),req.params(":phone"),
+                    req.params(":address"),req.params(":city"),req.params(":postalcode"),req.params(":country"));
 
-        for(Customer x : customers.getCustomerList()){
-            System.out.println(x);
-        }
-        System.out.println("\n");
+            res.status(201);
+            return "Customer has been updated!";
+        });
 
-        customers.addById(2); //clientul acesta exista dupa `id` deja in arraylist ul cu clienti, nu mai poate fi adaugat
+        //delete customer by id
+        delete("/customers/delete/:id", (req, res) -> {
+            customers.delete(Integer.parseInt(req.params(":id")));
 
-        customers.delete(1);
+            res.status(200);
+            return "Customer has been deleted!";
+        });
 
-        for(Customer x : customers.getCustomerList()){
-            System.out.println(x);
-        }
-        System.out.println("\n");
+        //get all orders
+        get("/orders/get-all", (req, res) -> {
+            res.status(200);
+            return customers.viewAllOrders();
+        });
 
-        customers.addOrder(4, Date.valueOf("2021-10-13"),Date.valueOf("2021-10-15"),"nothing","nothing");
-        customers.updateOrderStatus(4, "livrat");
-        customers.addCommentToOrder(4, "produsul sa fie ambalat discret");
+        //get order by id
+        get("/orders/:id", (req, res) -> customers.getOrderById(Integer.parseInt(req.params(":id"))));
 
-        customers.viewAllOrders();
-        System.out.println("\n");
+        //get all by customer id
+        get("/orders/get-by-customer/:id", (req, res) -> {
+            String message = "";
+
+            for(Order o : customers.viewAllOrdersByCustomer(Integer.parseInt(req.params(":id")))){
+                message = message + o + "\n";
+            }
+
+            res.status(200);
+            return message;
+        });
+
+        //insert new order
+        put("/orders/add/:customerid/:orderdate/:shippeddate/:status/:comments", (req, res) -> {
+            customers.addOrder(Integer.parseInt(req.params(":customerid")),Date.valueOf(req.params(":orderdate")),Date.valueOf(req.params(":shippeddate")),
+                    req.params(":status"),req.params(":comments"));
+
+            res.status(201);
+            return "Order has been added!";
+        });
+
+        //update order
+        put("/orders/update/:id/:status", (req, res) -> {
+            customers.updateOrderStatus(Integer.parseInt(req.params(":id")), req.params(":status"));
+
+            res.status(201);
+            return "Order was updated!";
+        });
+
+        //delete order
+        delete("orders/delete/:id", (req, res) -> {
+            customers.deleteOrder(Integer.parseInt(req.params(":id")));
+
+            res.status(200);
+            return "Order deleted!";
+        });
+
+        //get product with order id(JSON)
+        get("/orders/products/:id", (req, res) -> {
+            return customers.productOrdered(Integer.parseInt(req.params(":id")));
+        });
     }
 }

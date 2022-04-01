@@ -1,5 +1,3 @@
-package tema4;
-
 import java.sql.Date;
 
 public class Order {
